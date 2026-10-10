@@ -31,4 +31,27 @@ public class BinaryTreeNode {
     public void setRight(BinaryTreeNode right) {
         this.right = right;
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        appendTo(sb, "", "", "");
+        sb.setLength(sb.length() - 1);
+        return sb.toString();
+    }
+
+    private void appendTo(StringBuilder sb, String linePrefix, String childPrefix, String label) {
+        sb.append(linePrefix).append(label).append(data).append('\n');
+
+        if (left != null) {
+            boolean hasRight = right != null;
+            left.appendTo(sb,
+                    childPrefix + (hasRight ? "+--" : "\\--"),
+                    childPrefix + (hasRight ? "|  " : "   "),
+                    "L: ");
+        }
+        if (right != null) {
+            right.appendTo(sb, childPrefix + "+--", childPrefix + "   ", "R: ");
+        }
+    }
 }

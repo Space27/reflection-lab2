@@ -10,6 +10,6 @@ public class Example {
 
     @Override
     public String toString() {
-        return "Example(" + i + ")";
+        return "Example{i = " + i + "}";
     }
 }

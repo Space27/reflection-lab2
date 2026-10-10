@@ -18,5 +18,12 @@ public class Cart {
         this.items = items;
     }
 
+    @Override
+    public String toString() {
+        return "Cart{" +
+                "items=" + items +
+                '}';
+    }
+
     // Конструктор, методы добавления и удаления товаров, геттеры и другие методы
 }
