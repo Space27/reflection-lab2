@@ -3,6 +3,7 @@ package org.example.classes;
 import java.util.List;
 
 public class Cart {
+
     private List<Product> items;
 
     public Cart(List<Product> items) {

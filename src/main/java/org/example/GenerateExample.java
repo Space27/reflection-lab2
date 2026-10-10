@@ -5,7 +5,8 @@ import org.example.classes.Example;
 import org.example.generator.Generator;
 
 public class GenerateExample {
-    public static void main(String[] args) {
+
+    static void main() {
         var gen = new Generator();
         try {
             Object generated = gen.generateValueOfType(Example.class);

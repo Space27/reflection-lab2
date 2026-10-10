@@ -1,6 +1,7 @@
 package org.example.classes;
 
 public class Product {
+
     private String name;
     private double price;
 
@@ -44,5 +45,4 @@ public class Product {
     public String toString() {
         return super.toString();
     }
-
 }

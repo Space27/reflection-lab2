@@ -1,6 +1,7 @@
 package org.example.classes;
 
 public class Example {
+
     int i;
 
     public Example(int i) {

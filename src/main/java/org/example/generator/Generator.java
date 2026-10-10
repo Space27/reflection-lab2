@@ -13,6 +13,4 @@ public class Generator {
         Constructor<?> randomConstructor = constructors[randomConstructorIndex];
         return randomConstructor.newInstance(111);
     }
-
-
 }

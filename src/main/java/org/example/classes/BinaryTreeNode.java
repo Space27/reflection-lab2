@@ -1,6 +1,7 @@
 package org.example.classes;
 
 public class BinaryTreeNode {
+
     private Integer data;
     private BinaryTreeNode left;
     private BinaryTreeNode right;
