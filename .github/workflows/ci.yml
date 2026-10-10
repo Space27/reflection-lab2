@@ -1,0 +1,33 @@
+name: Task CI
+
+on:
+  push:
+    paths:
+      - .github/workflows/ci.yml
+      - src/**
+  pull_request:
+    paths:
+      - .github/workflows/ci.yml
+      - src/**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    name: Build and Test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Test with Gradle
+        run: ./gradlew test
