@@ -2,6 +2,7 @@ package org.example.generator;
 
 import org.reflections.Reflections;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +31,9 @@ public final class ReflectionUtils {
     @SuppressWarnings("unchecked")
     public static <T> T newNoArgInstance(Class<?> type) {
         try {
-            return (T) type.getDeclaredConstructor().newInstance();
+            Constructor<?> constructor = type.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            return (T) constructor.newInstance();
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException("Cannot create " + type.getName(), e);
         }

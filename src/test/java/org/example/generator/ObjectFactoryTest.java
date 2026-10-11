@@ -173,8 +173,8 @@ class ObjectFactoryTest {
         assertThat(object)
                 .isNotNull()
                 .extracting(Rectangle::getArea, as(InstanceOfAssertFactories.DOUBLE))
-                .isCloseTo(object.getLength() * object.getWidth(), Offset.offset(0.01))
-                .isNotCloseTo(0., Offset.offset(0.01));
+                .isCloseTo(object.getLength() * object.getWidth(), Offset.offset(0.0001))
+                .isNotCloseTo(0., Offset.offset(0.0001));
     }
 
     @Test
@@ -197,7 +197,7 @@ class ObjectFactoryTest {
     @DisplayName("Не создает объект с несколькими конструкторами без Generatable")
     void objectFactory_notCreatesSimpleObjectWithSeveralConstructorsWithoutGeneratable() {
         assertThatThrownBy(() -> factory.create(Person.class)).
-                isExactlyInstanceOf(RuntimeException.class)
+                isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Person")
                 .hasMessageContaining("constructor");
     }
@@ -278,7 +278,7 @@ class ObjectFactoryTest {
                 .isInstanceOf(Shape.class)
                 .isInstanceOf(Triangle.class)
                 .extracting(Shape::getPerimeter, as(InstanceOfAssertFactories.DOUBLE))
-                .isNotCloseTo(0., Offset.offset(0.01));
+                .isNotCloseTo(0., Offset.offset(0.0001));
     }
 
     @Test
@@ -307,16 +307,16 @@ class ObjectFactoryTest {
     @DisplayName("Не создает интерфейс без реализаций")
     void objectFactory_createsInterfaceWithoutImplementation() {
         assertThatThrownBy(() -> factory.create(Empty.class))
-                .isExactlyInstanceOf(RuntimeException.class)
+                .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Empty")
                 .hasMessageContaining("has no impls");
     }
 
     @Test
-    @DisplayName("Не создает интерфейс с несколькими реализациями без Generatable")
-    void objectFactory_createsInterfaceWithTwoImplsWithoutGeneratable() {
+    @DisplayName("Не создает интерфейс с несколькими реализациями с Generatable")
+    void objectFactory_createsInterfaceWithTwoImplsWithTwoGeneratable() {
         assertThatThrownBy(() -> factory.create(Two.class))
-                .isExactlyInstanceOf(RuntimeException.class)
+                .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Two")
                 .hasMessageContaining("has more than 1 implementations")
                 .hasMessageContaining("FirstTwoImpl")

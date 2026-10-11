@@ -31,10 +31,10 @@ public class MapTypeHandler implements TypeHandler {
 
         for (int i = 0; i < size; ++i) {
             Object key = objectFactory.create(keyType, remainLoops);
-            if (key == null) {
+            Object value = objectFactory.create(valueType, remainLoops);
+            if (key == null || value == null) {
                 break;
             }
-            Object value = objectFactory.create(valueType, remainLoops);
             try {
                 result.put(key, value);
             } catch (RuntimeException e) {
