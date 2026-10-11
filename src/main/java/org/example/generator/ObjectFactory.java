@@ -17,6 +17,8 @@ public class ObjectFactory {
         typeHandlers.add(new PrimitiveTypeHandler());
         typeHandlers.add(new StringTypeHandler());
         typeHandlers.add(new EnumTypeHandler());
+        typeHandlers.add(new ImplementationTypeHandler());
+        typeHandlers.add(new ClassTypeHandler());
     }
 
     public <T> T create(Class<T> clazz) {
