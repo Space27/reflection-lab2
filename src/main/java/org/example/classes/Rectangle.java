@@ -27,4 +27,12 @@ public class Rectangle implements Shape {
                 ", width=" + width +
                 '}';
     }
+
+    public double getWidth() {
+        return width;
+    }
+
+    public double getLength() {
+        return length;
+    }
 }
