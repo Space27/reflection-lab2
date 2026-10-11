@@ -10,6 +10,7 @@ repositories {
 }
 
 dependencies {
+    implementation("org.reflections:reflections:0.10.2")
     testImplementation(platform("org.junit:junit-bom:6.1.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation("org.assertj:assertj-core:3.27.7")
