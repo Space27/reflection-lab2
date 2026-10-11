@@ -17,6 +17,9 @@ public class ObjectFactory {
         typeHandlers.add(new PrimitiveTypeHandler());
         typeHandlers.add(new StringTypeHandler());
         typeHandlers.add(new EnumTypeHandler());
+        typeHandlers.add(new ArrayTypeHandler());
+        typeHandlers.add(new CollectionTypeHandler());
+        typeHandlers.add(new MapTypeHandler());
         typeHandlers.add(new ImplementationTypeHandler());
         typeHandlers.add(new ClassTypeHandler());
     }
