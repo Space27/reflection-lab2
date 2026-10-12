@@ -2,7 +2,6 @@ package org.example.generator.typehandler;
 
 import org.example.generator.Generatable;
 import org.example.generator.ObjectFactory;
-import org.example.generator.ReflectionUtils;
 import org.example.generator.ResolvedType;
 
 import java.lang.reflect.Constructor;
@@ -18,7 +17,7 @@ public class ClassTypeHandler implements TypeHandler {
         return !type.isInterface() && !Modifier.isAbstract(type.getModifiers())
                 && !type.isPrimitive() && !type.isEnum()
                 && !type.isArray()
-                && !(type.isMemberClass() && Modifier.isStatic(type.getModifiers()))
+                && !(type.isMemberClass() && !Modifier.isStatic(type.getModifiers()))
                 && !type.isLocalClass() && !type.isAnonymousClass();
     }
 

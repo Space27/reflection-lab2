@@ -5,6 +5,7 @@ import org.assertj.core.data.Offset;
 import org.example.classes.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -113,6 +114,16 @@ class ObjectFactoryTest {
                     .isNotNull()
                     .isNotEmpty();
         }
+
+        @RepeatedTest(15)
+        @DisplayName("Создает непустые массивы")
+        void objectFactory_createsNonEmptyArrays() {
+            Integer[] array = factory.create(Integer[].class);
+
+            assertThat(array)
+                    .isNotNull()
+                    .isNotEmpty();
+        }
     }
 
     @Nested
@@ -150,6 +161,26 @@ class ObjectFactoryTest {
                         assertThat(key).isNotNull().isInstanceOf(Integer.class);
                         assertThat(value).isNotNull().isInstanceOf(String.class);
                     });
+        }
+
+        @RepeatedTest(15)
+        @DisplayName("Создает непустые коллекции")
+        void objectFactory_createsNonEmptyCollections() {
+            Collection<?> list = factory.create(Collection.class);
+
+            assertThat(list)
+                    .isNotNull()
+                    .isNotEmpty();
+        }
+
+        @RepeatedTest(15)
+        @DisplayName("Создает непустые map")
+        void objectFactory_createsNonEmptyMaps() {
+            Map<?, ?> map = factory.create(Map.class);
+
+            assertThat(map)
+                    .isNotNull()
+                    .isNotEmpty();
         }
     }
 
