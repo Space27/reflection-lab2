@@ -32,7 +32,7 @@ class ObjectFactoryTest {
     @NullSource
     void objectFactory_failsOnInvalidType(Class<?> type) {
         assertThatThrownBy(() -> factory.create(type))
-                .isInstanceOf(GenerationException.class)
+                .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("empty type");
     }
 
