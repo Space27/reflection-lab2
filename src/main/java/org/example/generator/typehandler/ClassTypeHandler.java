@@ -32,7 +32,7 @@ public class ClassTypeHandler implements TypeHandler {
         Constructor<?> constructor = constructors.getFirst();
 
         Object[] args = Arrays.stream(constructor.getParameters())
-                .map(p -> objectFactory.create(ResolvedType.of(p.getParameterizedType()), remainLoops))
+                .map(p -> objectFactory.create(ResolvedType.of(p), remainLoops))
                 .toArray();
 
         try {
