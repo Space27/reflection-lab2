@@ -1,7 +1,8 @@
 package org.example.generator.typehandler;
 
 import org.example.generator.ObjectFactory;
-import org.example.generator.RandomUtils;
+import org.example.generator.annotation.Range;
+import org.example.generator.utils.RandomUtils;
 import org.example.generator.ResolvedType;
 
 public class StringTypeHandler implements TypeHandler {
@@ -18,9 +19,11 @@ public class StringTypeHandler implements TypeHandler {
 
     @Override
     public Object create(ResolvedType type, ObjectFactory objectFactory, int remainLoops) {
-        int length = RandomUtils.randomExponentialSize(MIN_LENGTH, EXPONENTIAL_SCALE);
-        StringBuilder sb = new StringBuilder(length);
+        int length = type.getAnnotation(Range.class)
+                .map(r -> (int) RandomUtils.randomIntegral(r, 0, Integer.MAX_VALUE))
+                .orElse(RandomUtils.randomExponentialSize(MIN_LENGTH, EXPONENTIAL_SCALE));
 
+        StringBuilder sb = new StringBuilder(length);
         for (int i = 0; i < length; ++i) {
             sb.append(ALPHABET.charAt(RandomUtils.RANDOM.nextInt(ALPHABET.length())));
         }

@@ -1,5 +1,6 @@
-package org.example.generator;
+package org.example.generator.utils;
 
+import org.example.generator.GenerationException;
 import org.reflections.Reflections;
 
 import java.lang.reflect.Constructor;

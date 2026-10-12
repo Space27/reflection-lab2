@@ -2,7 +2,7 @@ package org.example.generator.typehandler;
 
 import org.example.generator.GenerationException;
 import org.example.generator.ObjectFactory;
-import org.example.generator.RandomUtils;
+import org.example.generator.utils.RandomUtils;
 import org.example.generator.ResolvedType;
 
 import java.lang.reflect.Array;

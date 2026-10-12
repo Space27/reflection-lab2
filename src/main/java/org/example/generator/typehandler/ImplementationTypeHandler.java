@@ -2,6 +2,7 @@ package org.example.generator.typehandler;
 
 import org.example.generator.*;
 import org.example.generator.annotation.Generatable;
+import org.example.generator.utils.ReflectionUtils;
 
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;

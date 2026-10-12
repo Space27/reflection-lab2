@@ -37,11 +37,12 @@ public class ObjectFactory {
      * @param clazz класс создаваемого объекта
      * @param <T>   тип возвращаемого объекта
      * @return сгенерированный экземпляр объекта
-     * @throws GenerationException при ошибках генерации (в том числе передачи {@code null}, {@code void})
+     * @throws GenerationException при ошибках генерации
+     * @throws IllegalArgumentException при подаче пустых типов (null, void, Void)
      */
     public <T> T create(Class<T> clazz) {
         if (clazz == null || void.class.equals(clazz) || Void.class.equals(clazz)) {
-            throw new GenerationException("Cannot create empty type " + clazz);
+            throw new IllegalArgumentException("Cannot create empty type " + clazz);
         }
 
         return wrap(clazz).cast(create(ResolvedType.of(clazz), MAX_RECURSION_DEPTH));

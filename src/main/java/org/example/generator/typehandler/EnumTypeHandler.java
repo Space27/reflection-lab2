@@ -2,7 +2,8 @@ package org.example.generator.typehandler;
 
 import org.example.generator.GenerationException;
 import org.example.generator.ObjectFactory;
-import org.example.generator.RandomUtils;
+import org.example.generator.annotation.Range;
+import org.example.generator.utils.RandomUtils;
 import org.example.generator.ResolvedType;
 
 public class EnumTypeHandler implements TypeHandler {
@@ -20,7 +21,11 @@ public class EnumTypeHandler implements TypeHandler {
             throw new GenerationException(String.format("Enum %s has no constants", type.raw().getSimpleName()));
         }
 
-        return constants[RandomUtils.RANDOM.nextInt(constants.length)];
+        int i = type.getAnnotation(Range.class)
+                .map(r -> (int) RandomUtils.randomIntegral(r, 0, constants.length))
+                .orElse(RandomUtils.RANDOM.nextInt(constants.length));
+
+        return constants[i];
     }
 
     @Override
