@@ -1,10 +1,12 @@
 package org.example.generator;
 
+import org.example.generator.annotation.Singleton;
 import org.example.generator.typehandler.*;
 
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Array;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Главная фабрика объектов, использующая рефлексию и набор обработчиков {@link TypeHandler}
@@ -13,6 +15,7 @@ import java.util.*;
 public class ObjectFactory {
 
     private final List<TypeHandler> typeHandlers;
+    private final Map<Class<?>, Object> singletonCache = new ConcurrentHashMap<>();
 
     public static final int MAX_RECURSION_DEPTH = 5;
 
@@ -45,6 +48,16 @@ public class ObjectFactory {
     }
 
     public Object create(ResolvedType type, int remainLoops) {
+        Class<?> rawClass = type.raw();
+
+        if (rawClass.isAnnotationPresent(Singleton.class)) {
+            return singletonCache.computeIfAbsent(rawClass, _ -> createInstance(type, remainLoops));
+        }
+
+        return createInstance(type, remainLoops);
+    }
+
+    private Object createInstance(ResolvedType type, int remainLoops) {
         TypeHandler handler = findHandler(type);
         if (remainLoops <= 0 && handler.isRecursive()) {
             return defaultValue(type.raw());

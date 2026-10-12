@@ -4,6 +4,7 @@ import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.data.Offset;
 import org.example.classes.*;
 import org.example.generator.annotation.Generatable;
+import org.example.generator.annotation.Singleton;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.RepeatedTest;
@@ -447,6 +448,59 @@ class ObjectFactoryTest {
             assertThat(level)
                     .isNotNull()
                     .isInstanceOf(Severity.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("Генерация синглтонов")
+    class SingletonTests {
+
+        static class SimpleClass {
+        }
+
+        @Singleton
+        static class DatabaseConnection {
+        }
+
+        interface CacheService {
+        }
+
+        @Singleton
+        static class RedisCache implements CacheService {
+        }
+
+        @Test
+        @DisplayName("Возвращает один и тот же инстанс для класса, помеченного @Singleton")
+        void objectFactory_returnsSameInstanceForSingletonClass() {
+            DatabaseConnection first = factory.create(DatabaseConnection.class);
+            DatabaseConnection second = factory.create(DatabaseConnection.class);
+
+            assertThat(first)
+                    .isNotNull()
+                    .isSameAs(second);
+        }
+
+        @Test
+        @DisplayName("Возвращает один и тот же инстанс при запросе через интерфейс к @Singleton реализации")
+        void objectFactory_returnsSameInstanceForSingletonImplementationViaInterface() {
+            CacheService first = factory.create(CacheService.class);
+            CacheService second = factory.create(CacheService.class);
+
+            assertThat(first)
+                    .isNotNull()
+                    .isInstanceOf(RedisCache.class)
+                    .isSameAs(second);
+        }
+
+        @Test
+        @DisplayName("Возвращает разные инстансы для класса, не помеченного @Singleton")
+        void objectFactory_returnsDifferentInstanceForNotSingletonClass() {
+            SimpleClass first = factory.create(SimpleClass.class);
+            SimpleClass second = factory.create(SimpleClass.class);
+
+            assertThat(first)
+                    .isNotNull()
+                    .isNotSameAs(second);
         }
     }
 }
