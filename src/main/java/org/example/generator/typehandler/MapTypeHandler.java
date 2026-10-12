@@ -1,9 +1,6 @@
 package org.example.generator.typehandler;
 
-import org.example.generator.ObjectFactory;
-import org.example.generator.RandomUtils;
-import org.example.generator.ReflectionUtils;
-import org.example.generator.ResolvedType;
+import org.example.generator.*;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,7 +35,7 @@ public class MapTypeHandler implements TypeHandler {
             try {
                 result.put(key, value);
             } catch (RuntimeException e) {
-                throw new RuntimeException(String.format("Map %s denied entry %s->%s", type.raw().getSimpleName(), key, value), e);
+                throw new GenerationException(String.format("Map %s denied entry %s->%s", type.raw().getSimpleName(), key, value), e);
             }
         }
 

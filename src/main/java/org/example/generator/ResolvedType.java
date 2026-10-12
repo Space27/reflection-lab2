@@ -14,7 +14,7 @@ public record ResolvedType(Class<?> raw, List<ResolvedType> arguments) {
                     (Class<?>) p.getRawType(),
                     Arrays.stream(p.getActualTypeArguments()).map(ResolvedType::of).toList()
             );
-            default -> throw new RuntimeException("Type does not supported: " + type.getTypeName());
+            default -> throw new GenerationException("Type does not supported: " + type.getTypeName());
         };
     }
 

@@ -35,7 +35,7 @@ public final class ReflectionUtils {
             constructor.setAccessible(true);
             return (T) constructor.newInstance();
         } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("Cannot create " + type.getName(), e);
+            throw new GenerationException("Cannot create " + type.getName(), e);
         }
     }
 

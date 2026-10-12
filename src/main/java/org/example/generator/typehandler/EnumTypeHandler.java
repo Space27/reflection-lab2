@@ -1,5 +1,6 @@
 package org.example.generator.typehandler;
 
+import org.example.generator.GenerationException;
 import org.example.generator.ObjectFactory;
 import org.example.generator.RandomUtils;
 import org.example.generator.ResolvedType;
@@ -16,7 +17,7 @@ public class EnumTypeHandler implements TypeHandler {
         Object[] constants = type.raw().getEnumConstants();
 
         if (constants.length == 0) {
-            throw new RuntimeException(String.format("Enum %s has no constants", type.raw().getSimpleName()));
+            throw new GenerationException(String.format("Enum %s has no constants", type.raw().getSimpleName()));
         }
 
         return constants[RandomUtils.RANDOM.nextInt(constants.length)];

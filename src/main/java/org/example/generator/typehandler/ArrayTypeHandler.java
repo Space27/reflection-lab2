@@ -1,5 +1,6 @@
 package org.example.generator.typehandler;
 
+import org.example.generator.GenerationException;
 import org.example.generator.ObjectFactory;
 import org.example.generator.RandomUtils;
 import org.example.generator.ResolvedType;
@@ -29,7 +30,7 @@ public class ArrayTypeHandler implements TypeHandler {
             try {
                 Array.set(array, i, value);
             } catch (RuntimeException e) {
-                throw new RuntimeException(String.format("Array %s denied element %s", type.raw().getSimpleName(), value), e);
+                throw new GenerationException(String.format("Array %s denied element %s", type.raw().getSimpleName(), value), e);
             }
         }
 

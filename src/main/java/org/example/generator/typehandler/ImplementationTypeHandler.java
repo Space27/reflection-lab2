@@ -1,9 +1,7 @@
 package org.example.generator.typehandler;
 
-import org.example.generator.Generatable;
-import org.example.generator.ObjectFactory;
-import org.example.generator.ReflectionUtils;
-import org.example.generator.ResolvedType;
+import org.example.generator.*;
+import org.example.generator.annotation.Generatable;
 
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -14,7 +12,7 @@ public class ImplementationTypeHandler implements TypeHandler {
 
     @Override
     public boolean supports(Class<?> type) {
-        return type.isInterface() || Modifier.isAbstract(type.getModifiers());
+        return (type.isInterface() || Modifier.isAbstract(type.getModifiers()));
     }
 
     @Override
@@ -28,20 +26,20 @@ public class ImplementationTypeHandler implements TypeHandler {
         List<Class<?>> all = ReflectionUtils.findImplClasses(ifc);
 
         if (all.isEmpty()) {
-            throw new RuntimeException(String.format("Abstract (interface) %s has no impls", ifc.getSimpleName()));
+            throw new GenerationException(String.format("Abstract (interface) %s has no impls", ifc.getSimpleName()));
         } else if (all.size() > 1) {
             var tmp = new ArrayList<>(all);
             all = all.stream()
                     .filter(c -> c.isAnnotationPresent(Generatable.class))
                     .toList();
             if (all.isEmpty()) {
-                throw new RuntimeException(
+                throw new GenerationException(
                         String.format("Abstract (interface) %s has more than 1 implementations without @Generatable: %s",
                                 ifc.getSimpleName(), tmp.stream().map(Class::getSimpleName).toList()));
             }
         }
         if (all.size() > 1) {
-            throw new RuntimeException(
+            throw new GenerationException(
                     String.format("Abstract (interface) %s has more than 1 implementations with @Generatable: %s",
                             ifc.getSimpleName(), all.stream().map(Class::getSimpleName).toList()));
         }

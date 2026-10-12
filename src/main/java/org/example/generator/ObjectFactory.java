@@ -6,6 +6,10 @@ import java.lang.invoke.MethodType;
 import java.lang.reflect.Array;
 import java.util.*;
 
+/**
+ * Главная фабрика объектов, использующая рефлексию и набор обработчиков {@link TypeHandler}
+ * для генерации экземпляров произвольных типов данных
+ */
 public class ObjectFactory {
 
     private final List<TypeHandler> typeHandlers;
@@ -24,7 +28,19 @@ public class ObjectFactory {
         typeHandlers.add(new ClassTypeHandler());
     }
 
+    /**
+     * Создает и возвращает экземпляр указанного класса.
+     *
+     * @param clazz класс создаваемого объекта
+     * @param <T>   тип возвращаемого объекта
+     * @return сгенерированный экземпляр объекта
+     * @throws GenerationException при ошибках генерации (в том числе передачи {@code null}, {@code void})
+     */
     public <T> T create(Class<T> clazz) {
+        if (clazz == null || void.class.equals(clazz) || Void.class.equals(clazz)) {
+            throw new GenerationException("Cannot create empty type " + clazz);
+        }
+
         return wrap(clazz).cast(create(ResolvedType.of(clazz), MAX_RECURSION_DEPTH));
     }
 
@@ -40,7 +56,7 @@ public class ObjectFactory {
     private TypeHandler findHandler(ResolvedType type) {
         return typeHandlers.stream().filter(typeHandler -> typeHandler.supports(type.raw()))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException(type.raw().getSimpleName() + " does not supported"));
+                .orElseThrow(() -> new GenerationException(type.raw().getSimpleName() + " does not supported"));
     }
 
     private static Object defaultValue(Class<?> type) {

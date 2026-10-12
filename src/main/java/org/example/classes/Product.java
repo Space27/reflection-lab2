@@ -1,6 +1,6 @@
 package org.example.classes;
 
-import org.example.generator.Generatable;
+import org.example.generator.annotation.Generatable;
 
 public class Product {
 

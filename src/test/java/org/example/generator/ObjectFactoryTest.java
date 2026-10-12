@@ -3,11 +3,13 @@ package org.example.generator;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.data.Offset;
 import org.example.classes.*;
+import org.example.generator.annotation.Generatable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.lang.reflect.Array;
@@ -17,11 +19,21 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.junit.jupiter.api.Assertions.assertTimeout;
 
 class ObjectFactoryTest {
 
     private final ObjectFactory factory = new ObjectFactory();
+
+    @ParameterizedTest
+    @DisplayName("Выбрасывает исключение при передаче невалидных данных")
+    @ValueSource(classes = {void.class, Void.class})
+    @NullSource
+    void objectFactory_failsOnInvalidType(Class<?> type) {
+        assertThatThrownBy(() -> factory.create(type))
+                .isInstanceOf(GenerationException.class)
+                .hasMessageContaining("empty type");
+    }
 
     @Nested
     @DisplayName("Генерация примитивных типов, обёрток, строк и перечислений")
@@ -226,7 +238,7 @@ class ObjectFactoryTest {
         @DisplayName("Не создает объект с несколькими конструкторами без Generatable")
         void objectFactory_notCreatesSimpleObjectWithSeveralConstructorsWithoutGeneratable() {
             assertThatThrownBy(() -> factory.create(Person.class)).
-                    isInstanceOf(RuntimeException.class)
+                    isInstanceOf(GenerationException.class)
                     .hasMessageContaining("Person")
                     .hasMessageContaining("constructor");
         }
@@ -300,7 +312,7 @@ class ObjectFactoryTest {
         @Test
         @DisplayName("Циклические конструкторы")
         void objectFactory_createsClassesWithCyclicConstructor() {
-            Ping ping = assertTimeoutPreemptively(Duration.ofSeconds(2), () -> factory.create(Ping.class));
+            Ping ping = assertTimeout(Duration.ofSeconds(2), () -> factory.create(Ping.class));
 
             int chain = 0;
             Object current = ping;
@@ -400,7 +412,7 @@ class ObjectFactoryTest {
         @DisplayName("Не создает интерфейс без реализаций")
         void objectFactory_createsInterfaceWithoutImplementation() {
             assertThatThrownBy(() -> factory.create(Empty.class))
-                    .isInstanceOf(RuntimeException.class)
+                    .isInstanceOf(GenerationException.class)
                     .hasMessageContaining("Empty")
                     .hasMessageContaining("has no impls");
         }
@@ -409,7 +421,7 @@ class ObjectFactoryTest {
         @DisplayName("Не создает интерфейс с несколькими реализациями с Generatable")
         void objectFactory_createsInterfaceWithTwoImplsWithTwoGeneratable() {
             assertThatThrownBy(() -> factory.create(Two.class))
-                    .isInstanceOf(RuntimeException.class)
+                    .isInstanceOf(GenerationException.class)
                     .hasMessageContaining("Two")
                     .hasMessageContaining("has more than 1 implementations")
                     .hasMessageContaining("FirstTwoImpl")
@@ -420,7 +432,7 @@ class ObjectFactoryTest {
         @DisplayName("Не создает интерфейс с несколькими реализациями без Generatable")
         void objectFactory_createsInterfaceWithTwoImplsWithoutTwoGeneratable() {
             assertThatThrownBy(() -> factory.create(Vehicle.class))
-                    .isInstanceOf(RuntimeException.class)
+                    .isInstanceOf(GenerationException.class)
                     .hasMessageContaining("Vehicle")
                     .hasMessageContaining("has more than 1 implementations")
                     .hasMessageContaining("Car")

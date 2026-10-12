@@ -1,5 +1,6 @@
 package org.example.generator.typehandler;
 
+import org.example.generator.GenerationException;
 import org.example.generator.ResolvedType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -96,7 +97,7 @@ class EnumTypeHandlerTest {
     @DisplayName("Перечисление без констант даёт осмысленное исключение")
     void enumTypeHandler_throwsForEnumWithoutConstants() {
         assertThatThrownBy(() -> create(Empty.class))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(GenerationException.class)
                 .hasMessageContaining("Empty");
     }
 }

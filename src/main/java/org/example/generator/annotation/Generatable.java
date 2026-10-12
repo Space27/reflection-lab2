@@ -1,4 +1,4 @@
-package org.example.generator;
+package org.example.generator.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

@@ -1,6 +1,7 @@
 package org.example.generator.typehandler;
 
-import org.example.generator.Generatable;
+import org.example.generator.annotation.Generatable;
+import org.example.generator.GenerationException;
 import org.example.generator.ObjectFactory;
 import org.example.generator.ResolvedType;
 
@@ -26,7 +27,7 @@ public class ClassTypeHandler implements TypeHandler {
         Class<?> clazz = type.raw();
         List<Constructor<?>> constructors = findConstructors(clazz);
         if (constructors.size() != 1) {
-            throw new RuntimeException(String.format("%s has 0 or more than 1 constructors", clazz.getSimpleName()));
+            throw new GenerationException(String.format("%s has 0 or more than 1 constructors", clazz.getSimpleName()));
         }
         Constructor<?> constructor = constructors.getFirst();
 
@@ -38,10 +39,9 @@ public class ClassTypeHandler implements TypeHandler {
             constructor.setAccessible(true);
             return constructor.newInstance(args);
         } catch (InvocationTargetException e) {
-            throw new RuntimeException("Constructor of " + clazz.getSimpleName() + " throw exception: "
-                    + e.getCause(), e.getCause());
+            throw new GenerationException(String.format("Constructor of %s throw exception: %s", clazz.getSimpleName(), e.getCause()), e);
         } catch (ReflectiveOperationException | RuntimeException e) {
-            throw new RuntimeException("Cannot create " + clazz.getName(), e);
+            throw new GenerationException("Cannot create " + clazz.getName(), e);
         }
     }
 

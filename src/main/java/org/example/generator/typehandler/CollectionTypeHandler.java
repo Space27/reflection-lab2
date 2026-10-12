@@ -1,9 +1,6 @@
 package org.example.generator.typehandler;
 
-import org.example.generator.ObjectFactory;
-import org.example.generator.RandomUtils;
-import org.example.generator.ReflectionUtils;
-import org.example.generator.ResolvedType;
+import org.example.generator.*;
 
 import java.util.*;
 
@@ -35,7 +32,7 @@ public class CollectionTypeHandler implements TypeHandler {
             try {
                 result.add(value);
             } catch (RuntimeException e) {
-                throw new RuntimeException(String.format("Collection %s denied element %s", type.raw().getSimpleName(), value), e);
+                throw new GenerationException(String.format("Collection %s denied element %s", type.raw().getSimpleName(), value), e);
             }
         }
 
