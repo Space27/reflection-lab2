@@ -10,7 +10,7 @@ public class ObjectFactory {
 
     private final List<TypeHandler> typeHandlers;
 
-    private static final int MAX_RECURSION_DEPTH = 5;
+    public static final int MAX_RECURSION_DEPTH = 5;
 
     public ObjectFactory() {
         typeHandlers = new ArrayList<>();
