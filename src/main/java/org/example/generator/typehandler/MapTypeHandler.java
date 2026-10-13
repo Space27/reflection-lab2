@@ -1,6 +1,7 @@
 package org.example.generator.typehandler;
 
 import org.example.generator.*;
+import org.example.generator.annotation.Range;
 import org.example.generator.utils.RandomUtils;
 import org.example.generator.utils.ReflectionUtils;
 
@@ -26,7 +27,9 @@ public class MapTypeHandler implements TypeHandler {
         Map<Object, Object> result = newInstance(type.raw());
         ResolvedType keyType = type.argumentOrDefault(0, Integer.class);
         ResolvedType valueType = type.argumentOrDefault(1, String.class);
-        int size = RandomUtils.randomExponentialSize(MIN_SIZE, EXPONENTIAL_SCALE);
+        int size = type.getAnnotation(Range.class)
+                .map(r -> (int) RandomUtils.randomIntegral(r, 0, Integer.MAX_VALUE))
+                .orElse(RandomUtils.randomExponentialSize(MIN_SIZE, EXPONENTIAL_SCALE));
 
         for (int i = 0; i < size; ++i) {
             Object key = objectFactory.create(keyType, remainLoops);

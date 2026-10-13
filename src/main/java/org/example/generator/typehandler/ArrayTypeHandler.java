@@ -2,8 +2,9 @@ package org.example.generator.typehandler;
 
 import org.example.generator.GenerationException;
 import org.example.generator.ObjectFactory;
-import org.example.generator.utils.RandomUtils;
 import org.example.generator.ResolvedType;
+import org.example.generator.annotation.Range;
+import org.example.generator.utils.RandomUtils;
 
 import java.lang.reflect.Array;
 
@@ -19,7 +20,9 @@ public class ArrayTypeHandler implements TypeHandler {
 
     @Override
     public Object create(ResolvedType type, ObjectFactory objectFactory, int remainLoops) {
-        int size = RandomUtils.randomExponentialSize(MIN_SIZE, EXPONENTIAL_SCALE);
+        int size = type.getAnnotation(Range.class)
+                .map(r -> (int) RandomUtils.randomIntegral(r, 0, Integer.MAX_VALUE))
+                .orElse(RandomUtils.randomExponentialSize(MIN_SIZE, EXPONENTIAL_SCALE));
 
         Object array = Array.newInstance(type.raw().getComponentType(), size);
         for (int i = 0; i < size; ++i) {

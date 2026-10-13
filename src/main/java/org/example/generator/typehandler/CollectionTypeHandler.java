@@ -1,6 +1,7 @@
 package org.example.generator.typehandler;
 
 import org.example.generator.*;
+import org.example.generator.annotation.Range;
 import org.example.generator.utils.RandomUtils;
 import org.example.generator.utils.ReflectionUtils;
 
@@ -24,7 +25,9 @@ public class CollectionTypeHandler implements TypeHandler {
     public Object create(ResolvedType type, ObjectFactory objectFactory, int remainLoops) {
         Collection<Object> result = newInstance(type.raw());
         ResolvedType element = type.argumentOrDefault(0, Integer.class);
-        int size = RandomUtils.randomExponentialSize(MIN_SIZE, EXPONENTIAL_SCALE);
+        int size = type.getAnnotation(Range.class)
+                .map(r -> (int) RandomUtils.randomIntegral(r, 0, Integer.MAX_VALUE))
+                .orElse(RandomUtils.randomExponentialSize(MIN_SIZE, EXPONENTIAL_SCALE));
 
         for (int i = 0; i < size; ++i) {
             Object value = objectFactory.create(element, remainLoops);

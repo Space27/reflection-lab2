@@ -4,6 +4,7 @@ import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.data.Offset;
 import org.example.classes.*;
 import org.example.generator.annotation.Generatable;
+import org.example.generator.annotation.Range;
 import org.example.generator.annotation.Singleton;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -20,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertTimeout;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 class ObjectFactoryTest {
 
@@ -30,7 +31,7 @@ class ObjectFactoryTest {
     @DisplayName("Выбрасывает исключение при передаче невалидных данных")
     @ValueSource(classes = {void.class, Void.class})
     @NullSource
-    void objectFactory_failsOnInvalidType(Class<?> type) {
+    void objectFactory_rejectsInvalidType(Class<?> type) {
         assertThatThrownBy(() -> factory.create(type))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("empty type");
@@ -71,6 +72,19 @@ class ObjectFactoryTest {
                     .isNotNull()
                     .isInstanceOf(Color.class)
                     .isIn(Color.RED, Color.GREEN, Color.BLUE);
+        }
+
+        @ParameterizedTest(name = "Генератор создает различные {0}")
+        @ValueSource(classes = {int.class, long.class, double.class, boolean.class, char.class, String.class, Color.class})
+        @DisplayName("Создаёт разные объекты")
+        <T> void objectFactory_producesVariedValues(Class<T> type) {
+            Set<T> distinct = new HashSet<>();
+
+            for (int i = 0; i < 100; ++i) {
+                distinct.add(factory.create(type));
+            }
+
+            assertThat(distinct.size()).isGreaterThan(1);
         }
     }
 
@@ -123,9 +137,8 @@ class ObjectFactoryTest {
             assertThat(matrix)
                     .isNotNull()
                     .isNotEmpty();
-            assertThat(matrix[0])
-                    .isNotNull()
-                    .isNotEmpty();
+            assertThat(Arrays.stream(matrix).toList())
+                    .allSatisfy(element -> assertThat(element).isNotNull().isNotEmpty());
         }
 
         @RepeatedTest(15)
@@ -198,7 +211,7 @@ class ObjectFactoryTest {
     }
 
     @Nested
-    @DisplayName("Генерация пользовательских классы, рекурсия и дженерики")
+    @DisplayName("Генерация пользовательских классов, рекурсия и дженерики")
     class ComplexObjectsTests {
 
         record Ping(Pong pong) {
@@ -237,7 +250,7 @@ class ObjectFactoryTest {
 
         @Test
         @DisplayName("Не создает объект с несколькими конструкторами без Generatable")
-        void objectFactory_notCreatesSimpleObjectWithSeveralConstructorsWithoutGeneratable() {
+        void objectFactory_rejectsSimpleObjectWithSeveralConstructorsWithoutGeneratable() {
             assertThatThrownBy(() -> factory.create(Person.class)).
                     isInstanceOf(GenerationException.class)
                     .hasMessageContaining("Person")
@@ -313,7 +326,7 @@ class ObjectFactoryTest {
         @Test
         @DisplayName("Циклические конструкторы")
         void objectFactory_createsClassesWithCyclicConstructor() {
-            Ping ping = assertTimeout(Duration.ofSeconds(2), () -> factory.create(Ping.class));
+            Ping ping = assertTimeoutPreemptively(Duration.ofSeconds(2), () -> factory.create(Ping.class));
 
             int chain = 0;
             Object current = ping;
@@ -411,7 +424,7 @@ class ObjectFactoryTest {
 
         @Test
         @DisplayName("Не создает интерфейс без реализаций")
-        void objectFactory_createsInterfaceWithoutImplementation() {
+        void objectFactory_rejectsInterfaceWithoutImplementation() {
             assertThatThrownBy(() -> factory.create(Empty.class))
                     .isInstanceOf(GenerationException.class)
                     .hasMessageContaining("Empty")
@@ -420,22 +433,24 @@ class ObjectFactoryTest {
 
         @Test
         @DisplayName("Не создает интерфейс с несколькими реализациями с Generatable")
-        void objectFactory_createsInterfaceWithTwoImplsWithTwoGeneratable() {
+        void objectFactory_rejectsInterfaceWithTwoImplsWithTwoGeneratable() {
             assertThatThrownBy(() -> factory.create(Two.class))
                     .isInstanceOf(GenerationException.class)
                     .hasMessageContaining("Two")
                     .hasMessageContaining("has more than 1 implementations")
+                    .hasMessageContaining("with @Generatable")
                     .hasMessageContaining("FirstTwoImpl")
                     .hasMessageContaining("SecondTwoImpl");
         }
 
         @Test
         @DisplayName("Не создает интерфейс с несколькими реализациями без Generatable")
-        void objectFactory_createsInterfaceWithTwoImplsWithoutTwoGeneratable() {
+        void objectFactory_rejectsInterfaceWithTwoImplsWithoutTwoGeneratable() {
             assertThatThrownBy(() -> factory.create(Vehicle.class))
                     .isInstanceOf(GenerationException.class)
                     .hasMessageContaining("Vehicle")
                     .hasMessageContaining("has more than 1 implementations")
+                    .hasMessageContaining("without @Generatable")
                     .hasMessageContaining("Car")
                     .hasMessageContaining("Bike");
         }
@@ -501,6 +516,73 @@ class ObjectFactoryTest {
             assertThat(first)
                     .isNotNull()
                     .isNotSameAs(second);
+        }
+    }
+
+    @Nested
+    @DisplayName("Ограничения размеров (@Range) для массивов, коллекций и map")
+    class RangeConstraintsTests {
+
+        record ArrayRangeContainer(
+                @Range(min = 2, max = 4) String[] strings,
+                @Range(min = 1, max = 3) int[] primitives
+        ) {
+        }
+
+        record CollectionRangeContainer(
+                @Range(min = 3, max = 5) List<String> list,
+                @Range(min = 2, max = 3) Set<Integer> set
+        ) {
+        }
+
+        record MapRangeContainer(
+                @Range(min = 1, max = 2) Map<String, String> map
+        ) {
+        }
+
+        @Test
+        @DisplayName("Учитывает @Range для длины массивов")
+        void objectFactory_respectsRangeForArrays() {
+            Set<Integer> stringSizes = new HashSet<>();
+            Set<Integer> primSizes = new HashSet<>();
+
+            for (int i = 0; i < 200; ++i) {
+                ArrayRangeContainer container = factory.create(ArrayRangeContainer.class);
+                stringSizes.add(container.strings().length);
+                primSizes.add(container.primitives().length);
+            }
+
+            assertThat(stringSizes).containsExactlyInAnyOrder(2, 3, 4);
+            assertThat(primSizes).containsExactlyInAnyOrder(1, 2, 3);
+        }
+
+        @Test
+        @DisplayName("Учитывает @Range для размера коллекций")
+        void objectFactory_respectsRangeForCollections() {
+            Set<Integer> listSizes = new HashSet<>();
+            Set<Integer> setSizes = new HashSet<>();
+
+            for (int i = 0; i < 200; ++i) {
+                CollectionRangeContainer container = factory.create(CollectionRangeContainer.class);
+                listSizes.add(container.list().size());
+                setSizes.add(container.set().size());
+            }
+
+            assertThat(listSizes).containsExactlyInAnyOrder(3, 4, 5);
+            assertThat(setSizes).containsExactlyInAnyOrder(2, 3);
+        }
+
+        @Test
+        @DisplayName("Учитывает @Range для размера Map")
+        void objectFactory_respectsRangeForMaps() {
+            Set<Integer> sizes = new HashSet<>();
+
+            for (int i = 0; i < 200; ++i) {
+                MapRangeContainer container = factory.create(MapRangeContainer.class);
+                sizes.add(container.map().size());
+            }
+
+            assertThat(sizes).containsExactlyInAnyOrder(1, 2);
         }
     }
 }
