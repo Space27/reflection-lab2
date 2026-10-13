@@ -1,7 +1,6 @@
 package org.example;
 
 
-import org.example.classes.Company;
 import org.example.classes.Person;
 import org.example.generator.ObjectFactory;
 
