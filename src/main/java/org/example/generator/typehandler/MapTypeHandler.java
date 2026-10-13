@@ -15,6 +15,7 @@ public class MapTypeHandler implements TypeHandler {
 
     private static final int MIN_SIZE = 1;
     private static final int EXPONENTIAL_SCALE = 3;
+    private static final int MAX_GENERATION_ATTEMPTS = 10;
 
     @Override
     public boolean supports(Class<?> type) {
@@ -27,11 +28,11 @@ public class MapTypeHandler implements TypeHandler {
         Map<Object, Object> result = newInstance(type.raw());
         ResolvedType keyType = type.argumentOrDefault(0, Integer.class);
         ResolvedType valueType = type.argumentOrDefault(1, String.class);
-        int size = type.getAnnotation(Range.class)
-                .map(r -> (int) RandomUtils.randomIntegral(r, 0, Integer.MAX_VALUE))
-                .orElse(RandomUtils.randomExponentialSize(MIN_SIZE, EXPONENTIAL_SCALE));
+        int size = RandomUtils.randomContainerSize(
+                type.getAnnotation(Range.class).orElse(null), MIN_SIZE, EXPONENTIAL_SCALE
+        );
 
-        for (int i = 0; i < size; ++i) {
+        for (int i = 0; result.size() < size && i < size * MAX_GENERATION_ATTEMPTS; ++i) {
             Object key = objectFactory.create(keyType, remainLoops);
             Object value = objectFactory.create(valueType, remainLoops);
             if (key == null || value == null) {

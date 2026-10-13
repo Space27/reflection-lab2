@@ -20,9 +20,9 @@ public class ArrayTypeHandler implements TypeHandler {
 
     @Override
     public Object create(ResolvedType type, ObjectFactory objectFactory, int remainLoops) {
-        int size = type.getAnnotation(Range.class)
-                .map(r -> (int) RandomUtils.randomIntegral(r, 0, Integer.MAX_VALUE))
-                .orElse(RandomUtils.randomExponentialSize(MIN_SIZE, EXPONENTIAL_SCALE));
+        int size = RandomUtils.randomContainerSize(
+                type.getAnnotation(Range.class).orElse(null), MIN_SIZE, EXPONENTIAL_SCALE
+        );
 
         Object array = Array.newInstance(type.raw().getComponentType(), size);
         for (int i = 0; i < size; ++i) {

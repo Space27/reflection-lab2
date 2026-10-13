@@ -16,6 +16,14 @@ public final class RandomUtils {
         return min + (int) (RANDOM.nextExponential() * scale);
     }
 
+    public static int randomContainerSize(Range range, int defaultMin, double scale) {
+        if (range == null) {
+            return randomExponentialSize(defaultMin, scale);
+        }
+
+        return (int) randomIntegral(range, 0, Integer.MAX_VALUE);
+    }
+
     public static long randomIntegral(Range range, long typeMin, long typeMax) {
         validate(range);
 

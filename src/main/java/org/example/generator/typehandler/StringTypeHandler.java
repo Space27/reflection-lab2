@@ -19,9 +19,9 @@ public class StringTypeHandler implements TypeHandler {
 
     @Override
     public Object create(ResolvedType type, ObjectFactory objectFactory, int remainLoops) {
-        int length = type.getAnnotation(Range.class)
-                .map(r -> (int) RandomUtils.randomIntegral(r, 0, Integer.MAX_VALUE))
-                .orElse(RandomUtils.randomExponentialSize(MIN_LENGTH, EXPONENTIAL_SCALE));
+        int length = RandomUtils.randomContainerSize(
+                type.getAnnotation(Range.class).orElse(null), MIN_LENGTH, EXPONENTIAL_SCALE
+        );
 
         StringBuilder sb = new StringBuilder(length);
         for (int i = 0; i < length; ++i) {
