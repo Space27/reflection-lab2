@@ -103,11 +103,9 @@ class ObjectFactoryTest {
                     .isNotNull()
                     .isInstanceOf(type.arrayType())
                     .isNotEmpty()
+                    .doesNotContainNull()
+                    .hasOnlyElementsOfType(type)
                     .allSatisfy(element -> {
-                        assertThat(element)
-                                .isNotNull()
-                                .isInstanceOf(type);
-
                         if (element instanceof String s) {
                             assertThat(s).isNotBlank().isAlphanumeric();
                         }
@@ -169,7 +167,7 @@ class ObjectFactoryTest {
                     .isNotEmpty()
                     // без generic создается Integer
                     .hasOnlyElementsOfType(Integer.class)
-                    .allSatisfy(element -> assertThat(element).isNotNull());
+                    .doesNotContainNull();
         }
 
         @ParameterizedTest(name = "Создаёт map типа {0}")
@@ -220,6 +218,9 @@ class ObjectFactoryTest {
         record Pong(Ping ping) {
         }
 
+        class NonStaticInnerClass {
+        }
+
         @Test
         @DisplayName("Создает объект с одним простым конструктором")
         void objectFactory_createsSimpleObjectWithOneConstructor() {
@@ -267,8 +268,8 @@ class ObjectFactoryTest {
                     .extracting(Cart::getItems, as(InstanceOfAssertFactories.LIST))
                     .isNotEmpty()
                     .hasOnlyElementsOfType(Product.class)
+                    .doesNotContainNull()
                     .allSatisfy(element -> assertThat((Product) element)
-                            .isNotNull()
                             .extracting(Product::getName, as(InstanceOfAssertFactories.STRING))
                             .isNotBlank()
                             .isAlphanumeric()
@@ -320,7 +321,7 @@ class ObjectFactoryTest {
                     .extracting(List::getFirst)
                     .isNotEmpty()
                     .hasOnlyElementsOfType(Product.class)
-                    .allSatisfy(element -> assertThat(element).isNotNull());
+                    .doesNotContainNull();
         }
 
         @Test
@@ -336,6 +337,14 @@ class ObjectFactoryTest {
             }
 
             assertThat(chain).isBetween(1, ObjectFactory.MAX_RECURSION_DEPTH);
+        }
+
+        @Test
+        @DisplayName("Не генерирует нестатические внутренние классы")
+        void objectFactory_rejectsNonStaticInnerClass() {
+            assertThatThrownBy(() -> factory.create(NonStaticInnerClass.class))
+                    .isInstanceOf(GenerationException.class)
+                    .hasMessageContaining("does not supported");
         }
     }
 
@@ -463,6 +472,70 @@ class ObjectFactoryTest {
             assertThat(level)
                     .isNotNull()
                     .isInstanceOf(Severity.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("Генерация сложных типов (Wildcard, GenericArray)")
+    class AdvancedTypesTests {
+
+        record GenericArrayHolder<T>(T[] items) {
+        }
+
+        record WildcardContainer(List<? extends Shape> numbers) {
+        }
+
+        record DeepWildcardContainer(Map<? super String, List<? extends Shape>> departmentShapes) {
+        }
+
+        @Test
+        @DisplayName("Корректно обрабатывает GenericArrayType")
+        void objectFactory_createsGenericArrayType() {
+            GenericArrayHolder<?> object = factory.create(GenericArrayHolder.class);
+
+            assertThat(object)
+                    .isNotNull()
+                    .extracting(GenericArrayHolder::items, as(InstanceOfAssertFactories.ARRAY))
+                    .isNotNull()
+                    .isNotEmpty()
+                    .doesNotContainNull();
+        }
+
+        @Test
+        @DisplayName("Корректно обрабатывает WildcardType")
+        void objectFactory_createsWildcardCollection() {
+            WildcardContainer object = factory.create(WildcardContainer.class);
+
+            assertThat(object)
+                    .isNotNull()
+                    .extracting(WildcardContainer::numbers, as(InstanceOfAssertFactories.LIST))
+                    .isNotNull()
+                    .isNotEmpty()
+                    .hasOnlyElementsOfType(Shape.class);
+        }
+
+        @Test
+        @DisplayName("Корректно обрабатывает многоуровневые структуры с Wildcard")
+        void objectFactory_createsDeepWildcardStructure() {
+            DeepWildcardContainer object = factory.create(DeepWildcardContainer.class);
+
+            assertThat(object)
+                    .isNotNull()
+                    .extracting(DeepWildcardContainer::departmentShapes, as(InstanceOfAssertFactories.MAP))
+                    .isNotNull()
+                    .isNotEmpty()
+                    .allSatisfy((key, collection) -> {
+                        assertThat(key)
+                                .isNotNull()
+                                .isExactlyInstanceOf(String.class);
+                        assertThat(collection)
+                                .isNotNull()
+                                .isInstanceOf(List.class)
+                                .extracting(l -> (List<?>) l, as(InstanceOfAssertFactories.LIST))
+                                .isNotEmpty()
+                                .doesNotContainNull()
+                                .hasOnlyElementsOfType(Shape.class);
+                    });
         }
     }
 

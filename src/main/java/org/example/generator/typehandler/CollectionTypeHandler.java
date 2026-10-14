@@ -8,11 +8,13 @@ import org.example.generator.utils.RandomUtils;
 import org.example.generator.utils.ReflectionUtils;
 
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class CollectionTypeHandler implements TypeHandler {
 
     private static final List<Class<?>> IMPLEMENTATIONS =
-            List.of(ArrayList.class, LinkedHashSet.class, ArrayDeque.class, TreeSet.class);
+            List.of(ArrayList.class, HashSet.class, LinkedList.class, ArrayDeque.class, TreeSet.class,
+                    LinkedHashSet.class, PriorityQueue.class, CopyOnWriteArrayList.class);
 
     private static final int MIN_SIZE = 1;
     private static final int EXPONENTIAL_SCALE = 3;

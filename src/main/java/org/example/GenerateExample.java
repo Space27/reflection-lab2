@@ -1,7 +1,7 @@
 package org.example;
 
 
-import org.example.classes.Person;
+import org.example.classes.Company;
 import org.example.generator.ObjectFactory;
 
 public class GenerateExample {
@@ -9,7 +9,7 @@ public class GenerateExample {
     static void main() {
         ObjectFactory objectFactory = new ObjectFactory();
         try {
-            Person generated = objectFactory.create(Person.class);
+            Company generated = objectFactory.create(Company.class);
             System.out.println(generated);
         } catch (Throwable e) {
             throw new RuntimeException(e);

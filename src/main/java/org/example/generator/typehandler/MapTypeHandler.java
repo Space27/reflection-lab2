@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MapTypeHandler implements TypeHandler {
 
     private static final List<Class<?>> IMPLEMENTATIONS =
-            List.of(LinkedHashMap.class, TreeMap.class, ConcurrentHashMap.class);
+            List.of(HashMap.class, LinkedHashMap.class, TreeMap.class, ConcurrentHashMap.class);
 
     private static final int MIN_SIZE = 1;
     private static final int EXPONENTIAL_SCALE = 3;

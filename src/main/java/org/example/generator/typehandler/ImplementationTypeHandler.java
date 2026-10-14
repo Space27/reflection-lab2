@@ -13,7 +13,7 @@ public class ImplementationTypeHandler implements TypeHandler {
 
     @Override
     public boolean supports(Class<?> type) {
-        return (type.isInterface() || Modifier.isAbstract(type.getModifiers()));
+        return type.isInterface() || Modifier.isAbstract(type.getModifiers());
     }
 
     @Override
