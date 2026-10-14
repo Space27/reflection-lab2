@@ -1,6 +1,7 @@
 package org.example.classes;
 
 public class Example {
+
     int i;
 
     public Example(int i) {
@@ -9,6 +10,6 @@ public class Example {
 
     @Override
     public String toString() {
-        return "Example(" + i + ")";
+        return "Example{i = " + i + "}";
     }
 }

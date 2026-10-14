@@ -1,6 +1,7 @@
 package org.example.classes;
 
 public class Rectangle implements Shape {
+
     private double length;
     private double width;
 
@@ -17,5 +18,21 @@ public class Rectangle implements Shape {
     @Override
     public double getPerimeter() {
         return 2 * (length + width);
+    }
+
+    @Override
+    public String toString() {
+        return "Rectangle{" +
+                "length=" + length +
+                ", width=" + width +
+                '}';
+    }
+
+    public double getWidth() {
+        return width;
+    }
+
+    public double getLength() {
+        return length;
     }
 }

@@ -1,0 +1,59 @@
+package org.example.generator.typehandler;
+
+import org.example.generator.*;
+import org.example.generator.annotation.Range;
+import org.example.generator.utils.RandomUtils;
+import org.example.generator.utils.ReflectionUtils;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class MapTypeHandler implements TypeHandler {
+
+    private static final List<Class<?>> IMPLEMENTATIONS =
+            List.of(HashMap.class, LinkedHashMap.class, TreeMap.class, ConcurrentHashMap.class);
+
+    private static final int MIN_SIZE = 1;
+    private static final int EXPONENTIAL_SCALE = 3;
+    private static final int MAX_GENERATION_ATTEMPTS = 10;
+
+    @Override
+    public boolean supports(Class<?> type) {
+        return Map.class.isAssignableFrom(type)
+                && (defaultImplementation(type).isPresent() || ReflectionUtils.isConcrete(type));
+    }
+
+    @Override
+    public Object create(ResolvedType type, ObjectFactory objectFactory, int remainLoops) {
+        Map<Object, Object> result = newInstance(type.raw());
+        ResolvedType keyType = type.argumentOrDefault(0, Integer.class);
+        ResolvedType valueType = type.argumentOrDefault(1, String.class);
+        int size = RandomUtils.randomContainerSize(
+                type.getAnnotation(Range.class).orElse(null), MIN_SIZE, EXPONENTIAL_SCALE
+        );
+
+        for (int i = 0; result.size() < size && i < size * MAX_GENERATION_ATTEMPTS; ++i) {
+            Object key = objectFactory.create(keyType, remainLoops);
+            Object value = objectFactory.create(valueType, remainLoops);
+            if (key == null || value == null) {
+                break;
+            }
+            try {
+                result.put(key, value);
+            } catch (RuntimeException e) {
+                throw new GenerationException(String.format("Map %s denied entry %s->%s", type.raw().getSimpleName(), key, value), e);
+            }
+        }
+
+        return result;
+    }
+
+    private static Optional<Class<?>> defaultImplementation(Class<?> type) {
+        return IMPLEMENTATIONS.stream().filter(type::isAssignableFrom).findFirst();
+    }
+
+    private static Map<Object, Object> newInstance(Class<?> type) {
+        Class<?> implementation = ReflectionUtils.isConcrete(type) ? type : defaultImplementation(type).orElseThrow();
+        return ReflectionUtils.newNoArgInstance(implementation);
+    }
+}

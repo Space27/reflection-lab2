@@ -1,0 +1,661 @@
+package org.example.generator;
+
+import org.assertj.core.api.InstanceOfAssertFactories;
+import org.assertj.core.data.Offset;
+import org.example.classes.*;
+import org.example.generator.annotation.Generatable;
+import org.example.generator.annotation.Range;
+import org.example.generator.annotation.Singleton;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import java.lang.reflect.Array;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+
+class ObjectFactoryTest {
+
+    private final ObjectFactory factory = new ObjectFactory();
+
+    @ParameterizedTest
+    @DisplayName("Выбрасывает исключение при передаче невалидных данных")
+    @ValueSource(classes = {void.class, Void.class})
+    @NullSource
+    void objectFactory_rejectsInvalidType(Class<?> type) {
+        assertThatThrownBy(() -> factory.create(type))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("empty type");
+    }
+
+    @Nested
+    @DisplayName("Генерация примитивных типов, обёрток, строк и перечислений")
+    class PrimitivesAndScalarsTests {
+
+        @ParameterizedTest(name = "Создаёт тип {0}")
+        @ValueSource(classes = {Integer.class, int.class, Boolean.class, boolean.class, Double.class, double.class, char.class})
+        @DisplayName("Создает обертки и примитивы")
+        <T> void objectFactory_createsPrimitiveAndWrapperTypes(Class<T> type) {
+            T object = factory.create(type);
+
+            assertThat(object)
+                    .isNotNull();
+        }
+
+        @Test
+        @DisplayName("Создает строки")
+        void objectFactory_createsStrings() {
+            String object = factory.create(String.class);
+
+            assertThat(object)
+                    .isNotNull()
+                    .isInstanceOf(String.class)
+                    .isNotBlank()
+                    .isAlphanumeric();
+        }
+
+        @Test
+        @DisplayName("Создает перечисления")
+        void objectFactory_createsEnums() {
+            Color object = factory.create(Color.class);
+
+            assertThat(object)
+                    .isNotNull()
+                    .isInstanceOf(Color.class)
+                    .isIn(Color.RED, Color.GREEN, Color.BLUE);
+        }
+
+        @ParameterizedTest(name = "Генератор создает различные {0}")
+        @ValueSource(classes = {int.class, long.class, double.class, boolean.class, char.class, String.class, Color.class})
+        @DisplayName("Создаёт разные объекты")
+        <T> void objectFactory_producesVariedValues(Class<T> type) {
+            Set<T> distinct = new HashSet<>();
+
+            for (int i = 0; i < 100; ++i) {
+                distinct.add(factory.create(type));
+            }
+
+            assertThat(distinct.size()).isGreaterThan(1);
+        }
+    }
+
+    @Nested
+    @DisplayName("Генерация массивов")
+    class ArrayTests {
+
+        @ParameterizedTest(name = "Создаёт массив оберток типа {0}")
+        @ValueSource(classes = {Integer.class, Double.class, String.class, Color.class, Boolean.class, Character.class})
+        @DisplayName("Создает массивы оберток")
+        @SuppressWarnings("unchecked")
+        <T> void objectFactory_createsWrapperArrays(Class<T> type) {
+            T[] object = (T[]) factory.create(type.arrayType());
+
+            assertThat(object)
+                    .isNotNull()
+                    .isInstanceOf(type.arrayType())
+                    .isNotEmpty()
+                    .doesNotContainNull()
+                    .hasOnlyElementsOfType(type)
+                    .allSatisfy(element -> {
+                        if (element instanceof String s) {
+                            assertThat(s).isNotBlank().isAlphanumeric();
+                        }
+                    });
+        }
+
+        @ParameterizedTest(name = "Создаёт массив примитивов типа {0}")
+        @ValueSource(classes = {int.class, double.class, boolean.class, char.class, long.class, short.class})
+        @DisplayName("Создает примитивные массивы")
+        void objectFactory_createsPrimitiveArrays(Class<?> type) {
+            Class<?> arrayType = type.arrayType();
+            Object arrayObject = factory.create(arrayType);
+
+            assertThat(arrayObject)
+                    .isNotNull()
+                    .isInstanceOf(arrayType);
+
+            int length = Array.getLength(arrayObject);
+            assertThat(length).isGreaterThan(0);
+        }
+
+        @Test
+        @DisplayName("Создает многомерные массивы")
+        void objectFactory_createsMultidimensionalArrays() {
+            int[][] matrix = factory.create(int[][].class);
+
+            assertThat(matrix)
+                    .isNotNull()
+                    .isNotEmpty();
+            assertThat(Arrays.stream(matrix).toList())
+                    .allSatisfy(element -> assertThat(element).isNotNull().isNotEmpty());
+        }
+
+        @RepeatedTest(15)
+        @DisplayName("Создает непустые массивы")
+        void objectFactory_createsNonEmptyArrays() {
+            Integer[] array = factory.create(Integer[].class);
+
+            assertThat(array)
+                    .isNotNull()
+                    .isNotEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("Генерация коллекций и карт (без дженериков)")
+    class CollectionsAndMapsTests {
+
+        @ParameterizedTest(name = "Создаёт коллекцию типа {0}")
+        @ValueSource(classes = {List.class, Queue.class, Deque.class, Set.class, ArrayList.class, LinkedList.class, SortedSet.class})
+        @DisplayName("Создает коллекции без generic")
+        void objectFactory_createsCollectionsWithoutGenerics(Class<?> type) {
+            Collection<?> collection = (Collection<?>) factory.create(type);
+
+            assertThat(collection)
+                    .isNotNull()
+                    .isInstanceOf(Collection.class)
+                    .isInstanceOf(type)
+                    .isNotEmpty()
+                    // без generic создается Integer
+                    .hasOnlyElementsOfType(Integer.class)
+                    .doesNotContainNull();
+        }
+
+        @ParameterizedTest(name = "Создаёт map типа {0}")
+        @ValueSource(classes = {Map.class, SortedMap.class, NavigableMap.class, ConcurrentMap.class, HashMap.class, ConcurrentHashMap.class})
+        @DisplayName("Создает map без generic")
+        void objectFactory_createsMapsWithoutGenerics(Class<?> type) {
+            Map<?, ?> collection = (Map<?, ?>) factory.create(type);
+
+            assertThat(collection)
+                    .isNotNull()
+                    .isInstanceOf(Map.class)
+                    .isInstanceOf(type)
+                    .isNotEmpty()
+                    .allSatisfy((key, value) -> {
+                        assertThat(key).isNotNull().isInstanceOf(Integer.class);
+                        assertThat(value).isNotNull().isInstanceOf(String.class);
+                    });
+        }
+
+        @RepeatedTest(15)
+        @DisplayName("Создает непустые коллекции")
+        void objectFactory_createsNonEmptyCollections() {
+            Collection<?> list = factory.create(Collection.class);
+
+            assertThat(list)
+                    .isNotNull()
+                    .isNotEmpty();
+        }
+
+        @RepeatedTest(15)
+        @DisplayName("Создает непустые map")
+        void objectFactory_createsNonEmptyMaps() {
+            Map<?, ?> map = factory.create(Map.class);
+
+            assertThat(map)
+                    .isNotNull()
+                    .isNotEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("Генерация пользовательских классов, рекурсия и дженерики")
+    class ComplexObjectsTests {
+
+        record Ping(Pong pong) {
+        }
+
+        record Pong(Ping ping) {
+        }
+
+        class NonStaticInnerClass {
+        }
+
+        @Test
+        @DisplayName("Создает объект с одним простым конструктором")
+        void objectFactory_createsSimpleObjectWithOneConstructor() {
+            Rectangle object = factory.create(Rectangle.class);
+
+            assertThat(object)
+                    .isNotNull()
+                    .extracting(Rectangle::getArea, as(InstanceOfAssertFactories.DOUBLE))
+                    .isCloseTo(object.getLength() * object.getWidth(), Offset.offset(0.0001))
+                    .isNotCloseTo(0., Offset.offset(0.0001));
+        }
+
+        @Test
+        @DisplayName("Создает объект с несколькими конструкторами и Generatable")
+        void objectFactory_createsSimpleObjectWithSeveralConstructorsGeneratable() {
+            Product object = factory.create(Product.class);
+
+            object.setPrice(10.);
+
+            assertThat(object)
+                    .isNotNull()
+                    .extracting(Product::getName, as(InstanceOfAssertFactories.STRING))
+                    .isNotBlank()
+                    .isAlphanumeric();
+
+            assertThat(object.getPrice()).isEqualTo(10.);
+        }
+
+        @Test
+        @DisplayName("Не создает объект с несколькими конструкторами без Generatable")
+        void objectFactory_rejectsSimpleObjectWithSeveralConstructorsWithoutGeneratable() {
+            assertThatThrownBy(() -> factory.create(Person.class)).
+                    isInstanceOf(GenerationException.class)
+                    .hasMessageContaining("Person")
+                    .hasMessageContaining("constructor");
+        }
+
+        @Test
+        @DisplayName("Создает объект с вложенным списком")
+        void objectFactory_createsObjectWithList() {
+            Cart object = factory.create(Cart.class);
+
+            assertThat(object)
+                    .isNotNull()
+                    .extracting(Cart::getItems, as(InstanceOfAssertFactories.LIST))
+                    .isNotEmpty()
+                    .hasOnlyElementsOfType(Product.class)
+                    .doesNotContainNull()
+                    .allSatisfy(element -> assertThat((Product) element)
+                            .extracting(Product::getName, as(InstanceOfAssertFactories.STRING))
+                            .isNotBlank()
+                            .isAlphanumeric()
+                    );
+        }
+
+        @Test
+        @DisplayName("Создает рекурсивный объект BinaryTreeNode")
+        void objectFactory_createsRecursiveObject() {
+            BinaryTreeNode root = factory.create(BinaryTreeNode.class);
+
+            assertThat(root)
+                    .isNotNull()
+                    .extracting(BinaryTreeNode::getData, as(InstanceOfAssertFactories.INTEGER))
+                    .isNotNull()
+                    .isNotEqualTo(0);
+
+            if (root.getLeft() != null) {
+                assertThat(root.getLeft())
+                        .isNotNull()
+                        .extracting(BinaryTreeNode::getData, as(InstanceOfAssertFactories.INTEGER))
+                        .isNotNull()
+                        .isNotEqualTo(0);
+            }
+
+            if (root.getRight() != null) {
+                assertThat(root.getRight())
+                        .isNotNull()
+                        .extracting(BinaryTreeNode::getData, as(InstanceOfAssertFactories.INTEGER))
+                        .isNotNull()
+                        .isNotEqualTo(0);
+            }
+        }
+
+        @Test
+        @DisplayName("Создает объект со сложными вложенными дженериками")
+        void objectFactory_createsComplexNestedGenerics() {
+            Company company = factory.create(Company.class);
+
+            assertThat(company)
+                    .isNotNull()
+                    .extracting(Company::getDepartmentProducts, as(InstanceOfAssertFactories.MAP))
+                    .isNotNull()
+                    .isNotEmpty();
+            assertThat(company.getDepartmentProducts().values())
+                    .isNotEmpty()
+                    .allSatisfy(element -> assertThat((List<?>) element).isNotEmpty())
+                    .hasOnlyElementsOfType(List.class)
+                    .extracting(List::getFirst)
+                    .isNotEmpty()
+                    .hasOnlyElementsOfType(Product.class)
+                    .doesNotContainNull();
+        }
+
+        @Test
+        @DisplayName("Циклические конструкторы")
+        void objectFactory_createsClassesWithCyclicConstructor() {
+            Ping ping = assertTimeoutPreemptively(Duration.ofSeconds(2), () -> factory.create(Ping.class));
+
+            int chain = 0;
+            Object current = ping;
+            while (current != null) {
+                ++chain;
+                current = current instanceof Ping(Pong pong) ? pong : ((Pong) current).ping();
+            }
+
+            assertThat(chain).isBetween(1, ObjectFactory.MAX_RECURSION_DEPTH);
+        }
+
+        @Test
+        @DisplayName("Не генерирует нестатические внутренние классы")
+        void objectFactory_rejectsNonStaticInnerClass() {
+            assertThatThrownBy(() -> factory.create(NonStaticInnerClass.class))
+                    .isInstanceOf(GenerationException.class)
+                    .hasMessageContaining("does not supported");
+        }
+    }
+
+    @Nested
+    @DisplayName("Генерация полиморфных классов")
+    class PolymorphismTests {
+
+        interface Empty {
+        }
+
+        interface One {
+        }
+
+        static class OneImpl implements One {
+        }
+
+        interface Two {
+        }
+
+        @Generatable
+        static class FirstTwoImpl implements Two {
+        }
+
+        @Generatable
+        static class SecondTwoImpl implements Two {
+        }
+
+        static abstract class AbstractMultiple {
+        }
+
+        @Generatable
+        static class ConcreteFirst extends AbstractMultiple {
+        }
+
+        static class ConcreteSecond extends AbstractMultiple {
+        }
+
+        interface Vehicle {
+        }
+
+        static class Car implements Vehicle {
+        }
+
+        static class Bike implements Vehicle {
+        }
+
+        interface Level {
+        }
+
+        enum Severity implements Level {LOW, HIGH}
+
+        @Test
+        @DisplayName("Создает интерфейс с двумя реализациями с Generatable")
+        void objectFactory_createsInterfaceWithTwoImplsWithGeneratable() {
+            Shape object = factory.create(Shape.class);
+
+            assertThat(object)
+                    .isNotNull()
+                    .isInstanceOf(Shape.class)
+                    .isInstanceOf(Triangle.class)
+                    .extracting(Shape::getPerimeter, as(InstanceOfAssertFactories.DOUBLE))
+                    .isNotCloseTo(0., Offset.offset(0.0001));
+        }
+
+        @Test
+        @DisplayName("Создает абстрактный класс с двумя реализациями с Generatable")
+        void objectFactory_createsAbstractClassWithTwoImplsWithGeneratable() {
+            AbstractMultiple object = factory.create(AbstractMultiple.class);
+
+            assertThat(object)
+                    .isNotNull()
+                    .isInstanceOf(AbstractMultiple.class)
+                    .isInstanceOf(ConcreteFirst.class);
+        }
+
+        @Test
+        @DisplayName("Создает интерфейс с одной реализацией")
+        void objectFactory_createsInterfaceWithOneImplementation() {
+            One object = factory.create(One.class);
+
+            assertThat(object)
+                    .isNotNull()
+                    .isInstanceOf(One.class)
+                    .isInstanceOf(OneImpl.class);
+        }
+
+        @Test
+        @DisplayName("Не создает интерфейс без реализаций")
+        void objectFactory_rejectsInterfaceWithoutImplementation() {
+            assertThatThrownBy(() -> factory.create(Empty.class))
+                    .isInstanceOf(GenerationException.class)
+                    .hasMessageContaining("Empty")
+                    .hasMessageContaining("has no impls");
+        }
+
+        @Test
+        @DisplayName("Не создает интерфейс с несколькими реализациями с Generatable")
+        void objectFactory_rejectsInterfaceWithTwoImplsWithTwoGeneratable() {
+            assertThatThrownBy(() -> factory.create(Two.class))
+                    .isInstanceOf(GenerationException.class)
+                    .hasMessageContaining("Two")
+                    .hasMessageContaining("has more than 1 implementations")
+                    .hasMessageContaining("with @Generatable")
+                    .hasMessageContaining("FirstTwoImpl")
+                    .hasMessageContaining("SecondTwoImpl");
+        }
+
+        @Test
+        @DisplayName("Не создает интерфейс с несколькими реализациями без Generatable")
+        void objectFactory_rejectsInterfaceWithTwoImplsWithoutTwoGeneratable() {
+            assertThatThrownBy(() -> factory.create(Vehicle.class))
+                    .isInstanceOf(GenerationException.class)
+                    .hasMessageContaining("Vehicle")
+                    .hasMessageContaining("has more than 1 implementations")
+                    .hasMessageContaining("without @Generatable")
+                    .hasMessageContaining("Car")
+                    .hasMessageContaining("Bike");
+        }
+
+        @Test
+        @DisplayName("Enum может быть реализацией интерфейса")
+        void objectFactory_createsEnumImplementationOfInterface() {
+            Level level = factory.create(Level.class);
+
+            assertThat(level)
+                    .isNotNull()
+                    .isInstanceOf(Severity.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("Генерация сложных типов (Wildcard, GenericArray)")
+    class AdvancedTypesTests {
+
+        record GenericArrayHolder<T>(T[] items) {
+        }
+
+        record WildcardContainer(List<? extends Shape> numbers) {
+        }
+
+        record DeepWildcardContainer(Map<? super String, List<? extends Shape>> departmentShapes) {
+        }
+
+        @Test
+        @DisplayName("Корректно обрабатывает GenericArrayType")
+        void objectFactory_createsGenericArrayType() {
+            GenericArrayHolder<?> object = factory.create(GenericArrayHolder.class);
+
+            assertThat(object)
+                    .isNotNull()
+                    .extracting(GenericArrayHolder::items, as(InstanceOfAssertFactories.ARRAY))
+                    .isNotNull()
+                    .isNotEmpty()
+                    .doesNotContainNull();
+        }
+
+        @Test
+        @DisplayName("Корректно обрабатывает WildcardType")
+        void objectFactory_createsWildcardCollection() {
+            WildcardContainer object = factory.create(WildcardContainer.class);
+
+            assertThat(object)
+                    .isNotNull()
+                    .extracting(WildcardContainer::numbers, as(InstanceOfAssertFactories.LIST))
+                    .isNotNull()
+                    .isNotEmpty()
+                    .hasOnlyElementsOfType(Shape.class);
+        }
+
+        @Test
+        @DisplayName("Корректно обрабатывает многоуровневые структуры с Wildcard")
+        void objectFactory_createsDeepWildcardStructure() {
+            DeepWildcardContainer object = factory.create(DeepWildcardContainer.class);
+
+            assertThat(object)
+                    .isNotNull()
+                    .extracting(DeepWildcardContainer::departmentShapes, as(InstanceOfAssertFactories.MAP))
+                    .isNotNull()
+                    .isNotEmpty()
+                    .allSatisfy((key, collection) -> {
+                        assertThat(key)
+                                .isNotNull()
+                                .isExactlyInstanceOf(String.class);
+                        assertThat(collection)
+                                .isNotNull()
+                                .isInstanceOf(List.class)
+                                .extracting(l -> (List<?>) l, as(InstanceOfAssertFactories.LIST))
+                                .isNotEmpty()
+                                .doesNotContainNull()
+                                .hasOnlyElementsOfType(Shape.class);
+                    });
+        }
+    }
+
+    @Nested
+    @DisplayName("Генерация синглтонов")
+    class SingletonTests {
+
+        static class SimpleClass {
+        }
+
+        @Singleton
+        static class DatabaseConnection {
+        }
+
+        interface CacheService {
+        }
+
+        @Singleton
+        static class RedisCache implements CacheService {
+        }
+
+        @Test
+        @DisplayName("Возвращает один и тот же инстанс для класса, помеченного @Singleton")
+        void objectFactory_returnsSameInstanceForSingletonClass() {
+            DatabaseConnection first = factory.create(DatabaseConnection.class);
+            DatabaseConnection second = factory.create(DatabaseConnection.class);
+
+            assertThat(first)
+                    .isNotNull()
+                    .isSameAs(second);
+        }
+
+        @Test
+        @DisplayName("Возвращает один и тот же инстанс при запросе через интерфейс к @Singleton реализации")
+        void objectFactory_returnsSameInstanceForSingletonImplementationViaInterface() {
+            CacheService first = factory.create(CacheService.class);
+            CacheService second = factory.create(CacheService.class);
+
+            assertThat(first)
+                    .isNotNull()
+                    .isInstanceOf(RedisCache.class)
+                    .isSameAs(second);
+        }
+
+        @Test
+        @DisplayName("Возвращает разные инстансы для класса, не помеченного @Singleton")
+        void objectFactory_returnsDifferentInstanceForNotSingletonClass() {
+            SimpleClass first = factory.create(SimpleClass.class);
+            SimpleClass second = factory.create(SimpleClass.class);
+
+            assertThat(first)
+                    .isNotNull()
+                    .isNotSameAs(second);
+        }
+    }
+
+    @Nested
+    @DisplayName("Ограничения размеров (@Range) для массивов, коллекций и map")
+    class RangeConstraintsTests {
+
+        record ArrayRangeContainer(
+                @Range(min = 2, max = 4) String[] strings,
+                @Range(min = 1, max = 3) int[] primitives
+        ) {
+        }
+
+        record CollectionRangeContainer(
+                @Range(min = 3, max = 5) List<String> list,
+                @Range(min = 2, max = 3) Set<Integer> set
+        ) {
+        }
+
+        record MapRangeContainer(
+                @Range(min = 1, max = 2) Map<String, String> map
+        ) {
+        }
+
+        @Test
+        @DisplayName("Учитывает @Range для длины массивов")
+        void objectFactory_respectsRangeForArrays() {
+            Set<Integer> stringSizes = new HashSet<>();
+            Set<Integer> primSizes = new HashSet<>();
+
+            for (int i = 0; i < 200; ++i) {
+                ArrayRangeContainer container = factory.create(ArrayRangeContainer.class);
+                stringSizes.add(container.strings().length);
+                primSizes.add(container.primitives().length);
+            }
+
+            assertThat(stringSizes).containsExactlyInAnyOrder(2, 3, 4);
+            assertThat(primSizes).containsExactlyInAnyOrder(1, 2, 3);
+        }
+
+        @Test
+        @DisplayName("Учитывает @Range для размера коллекций")
+        void objectFactory_respectsRangeForCollections() {
+            Set<Integer> listSizes = new HashSet<>();
+            Set<Integer> setSizes = new HashSet<>();
+
+            for (int i = 0; i < 200; ++i) {
+                CollectionRangeContainer container = factory.create(CollectionRangeContainer.class);
+                listSizes.add(container.list().size());
+                setSizes.add(container.set().size());
+            }
+
+            assertThat(listSizes).containsExactlyInAnyOrder(3, 4, 5);
+            assertThat(setSizes).containsExactlyInAnyOrder(2, 3);
+        }
+
+        @Test
+        @DisplayName("Учитывает @Range для размера Map")
+        void objectFactory_respectsRangeForMaps() {
+            Set<Integer> sizes = new HashSet<>();
+
+            for (int i = 0; i < 200; ++i) {
+                MapRangeContainer container = factory.create(MapRangeContainer.class);
+                sizes.add(container.map().size());
+            }
+
+            assertThat(sizes).containsExactlyInAnyOrder(1, 2);
+        }
+    }
+}
