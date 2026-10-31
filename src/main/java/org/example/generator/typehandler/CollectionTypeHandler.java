@@ -1,0 +1,60 @@
+package org.example.generator.typehandler;
+
+import org.example.generator.GenerationException;
+import org.example.generator.ObjectFactory;
+import org.example.generator.ResolvedType;
+import org.example.generator.annotation.Range;
+import org.example.generator.utils.RandomUtils;
+import org.example.generator.utils.ReflectionUtils;
+
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+public class CollectionTypeHandler implements TypeHandler {
+
+    private static final List<Class<?>> IMPLEMENTATIONS =
+            List.of(ArrayList.class, HashSet.class, LinkedList.class, ArrayDeque.class, TreeSet.class,
+                    LinkedHashSet.class, PriorityQueue.class, CopyOnWriteArrayList.class);
+
+    private static final int MIN_SIZE = 1;
+    private static final int EXPONENTIAL_SCALE = 3;
+    private static final int MAX_GENERATION_ATTEMPTS = 10;
+
+    @Override
+    public boolean supports(Class<?> type) {
+        return Collection.class.isAssignableFrom(type)
+                && (ReflectionUtils.isConcrete(type) || defaultImplementation(type).isPresent());
+    }
+
+    @Override
+    public Object create(ResolvedType type, ObjectFactory objectFactory, int remainLoops) {
+        Collection<Object> result = newInstance(type.raw());
+        ResolvedType element = type.argumentOrDefault(0, Integer.class);
+        int size = RandomUtils.randomContainerSize(
+                type.getAnnotation(Range.class).orElse(null), MIN_SIZE, EXPONENTIAL_SCALE
+        );
+
+        for (int i = 0; result.size() < size && i < size * MAX_GENERATION_ATTEMPTS; ++i) {
+            Object value = objectFactory.create(element, remainLoops);
+            if (value == null) {
+                break;
+            }
+            try {
+                result.add(value);
+            } catch (RuntimeException e) {
+                throw new GenerationException(String.format("Collection %s denied element %s", type.raw().getSimpleName(), value), e);
+            }
+        }
+
+        return result;
+    }
+
+    private static Optional<Class<?>> defaultImplementation(Class<?> type) {
+        return IMPLEMENTATIONS.stream().filter(type::isAssignableFrom).findFirst();
+    }
+
+    private static Collection<Object> newInstance(Class<?> type) {
+        Class<?> implementation = ReflectionUtils.isConcrete(type) ? type : defaultImplementation(type).orElseThrow();
+        return ReflectionUtils.newNoArgInstance(implementation);
+    }
+}

@@ -1,6 +1,10 @@
 package org.example.classes;
 
+import org.example.generator.annotation.Generatable;
+
+@Generatable
 public class Triangle implements Shape {
+
     private double sideA;
     private double sideB;
     private double sideC;
@@ -20,5 +24,14 @@ public class Triangle implements Shape {
     @Override
     public double getPerimeter() {
         return sideA + sideB + sideC;
+    }
+
+    @Override
+    public String toString() {
+        return "Triangle{" +
+                "sideA=" + sideA +
+                ", sideB=" + sideB +
+                ", sideC=" + sideC +
+                '}';
     }
 }
